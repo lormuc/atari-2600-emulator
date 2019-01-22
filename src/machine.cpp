@@ -9,6 +9,8 @@
 #include "gfx.hpp"
 #include "misc.hpp"
 
+using std::cout;
+
 namespace {
     bool reset_flag;
     bool nmi_flag;
@@ -1031,7 +1033,7 @@ void machine::init() {
     rx = 0x00;
     ry = 0x00;
     rp = 0x24;
-    std::fill(memory.begin(), memory.end(), 0xff);
+    std::fill(memory.begin(), memory.end(), 0x00);
     nmi_flag = 0;
     irq_flag = 0;
     reset_flag = 0;

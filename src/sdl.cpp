@@ -7,7 +7,7 @@
 #include "misc.hpp"
 #include "sdl.hpp"
 
-const auto frames_per_second = 1;
+const auto frames_per_second = 60;
 
 const auto out_scr_width = 640u;
 const auto out_scr_height = 384u;

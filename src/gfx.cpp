@@ -12,6 +12,21 @@
 
 const char not_a_color = 0xff;
 
+using std::cout;
+
+namespace {
+    unsigned hor_cnt;
+    unsigned ver_cnt;
+    bool vsyncing;
+
+    unsigned halt_line;
+
+    char background_color;
+    char vdelp[2];
+    char vdelbl;
+    char resmp[2];
+}
+
 class t_object {
 protected:
     std::vector<unsigned> decoders;
@@ -48,6 +63,9 @@ public:
     void reset() {
         pos_cnt = 0;
         pos_cnt = 160 - 8;
+        if (hor_cnt >= 60 && hor_cnt < 68) {
+            pos_cnt = 160 - (hor_cnt + 8 - 68);
+        }
     }
 
     void set_width(unsigned val) {
@@ -176,17 +194,6 @@ public:
 };
 
 namespace {
-    unsigned hor_cnt;
-    unsigned ver_cnt;
-    bool vsyncing;
-
-    unsigned halt_line;
-
-    char background_color;
-    char vdelp[2];
-    char vdelbl;
-    char resmp[2];
-
     t_player plr[2];
     t_missile msl[2];
     t_playfield plf;
@@ -513,11 +520,11 @@ void gfx::cycle() {
             }
         };
         add_color(plf.color_cycle());
-        add_color(ball.color_cycle());
-        add_color(plr[1].color_cycle());
-        add_color(msl[1].color_cycle());
+        // add_color(ball.color_cycle());
+        // add_color(plr[1].color_cycle());
+        // add_color(msl[1].color_cycle());
         add_color(plr[0].color_cycle());
-        add_color(msl[0].color_cycle());
+        // add_color(msl[0].color_cycle());
 
         if (ver_cnt >= 40) {
             sdl::send_pixel(color);
