@@ -18,7 +18,6 @@ $(target): $(obj)
 	$(cc) -o $@ $(obj) -Wall $(lib)
 
 clean:
-	rm -f *.o
-	rm -rf $(target)
+	rm -rf build/
 
 .PHONY: all clean
