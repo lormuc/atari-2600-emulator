@@ -36,7 +36,7 @@ public:
         width = 0;
         width_cnt = 0;
         pos_cnt = 0;
-        enabled = true;
+        enabled = false;
         offset = 0;
         color = 0;
     }
@@ -47,6 +47,7 @@ public:
 
     void reset() {
         pos_cnt = 0;
+        pos_cnt = 160 - 8;
     }
 
     void set_width(unsigned val) {
@@ -179,6 +180,8 @@ namespace {
     unsigned ver_cnt;
     bool vsyncing;
 
+    unsigned halt_line;
+
     char background_color;
     char vdelp[2];
     char vdelbl;
@@ -295,6 +298,7 @@ void gfx::set(char addr, char val) {
         break;
 
     case 0x02:
+        halt_line = ver_cnt;
         machine::halt();
         break;
 
@@ -521,9 +525,12 @@ void gfx::cycle() {
     }
     hor_cnt++;
     if (hor_cnt == 228) {
-        machine::resume();
         hor_cnt = 0;
         ver_cnt++;
+    }
+    if (hor_cnt == 6 && ver_cnt == halt_line + 1) {
+        machine::resume();
+        halt_line = -2;
     }
 }
 
@@ -532,11 +539,21 @@ bool gfx::init() {
     ver_cnt = 0;
     vsyncing = false;
 
+    plf.init();
     plf.set_width(160);
+    plf.set_enabled(true);
+
+    plr[0].init();
+    plr[0].set_enabled(true);
     plr[0].set_width(8);
+    plr[1].init();
+    plr[1].set_enabled(true);
     plr[1].set_width(8);
+    msl[0].init();
     msl[0].set_width(1);
+    msl[1].init();
     msl[1].set_width(1);
+    ball.init();
     ball.set_width(1);
 
     background_color = 0;
@@ -546,6 +563,8 @@ bool gfx::init() {
     resmp[0] = 0;
     resmp[1] = 0;
     cxclr();
+
+    halt_line = -2;
 
     auto success = sdl::init();
 
