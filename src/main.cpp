@@ -3,6 +3,7 @@
 #include <cstdio>
 
 #include "gfx.hpp"
+#include "pia.hpp"
 #include "machine.hpp"
 
 int main(int argc, char** argv) {
@@ -19,6 +20,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    pia::init();
     gfx::init();
     while (gfx::is_running()) {
         gfx::poll();
@@ -28,6 +30,7 @@ int main(int argc, char** argv) {
             gfx::cycle();
             gfx::cycle();
             machine::cycle();
+            pia::cycle();
         }
     }
 

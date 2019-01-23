@@ -7,7 +7,7 @@
 #include "misc.hpp"
 #include "sdl.hpp"
 
-const auto frames_per_second = 60;
+const auto frames_per_second = 1;
 const auto monochrome = false;
 
 const auto out_scr_width = 640u;

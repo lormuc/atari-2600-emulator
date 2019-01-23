@@ -510,12 +510,12 @@ char gfx::get(char addr) {
 }
 
 void gfx::cycle() {
-    if (hor_cnt == 0) {
-        std::cout << "scanline " << ver_cnt << "\n";
-    }
+    // if (hor_cnt == 0) {
+    //     std::cout << "scanline " << ver_cnt << "\n";
+    // }
 
     if (hor_cnt >= 68) {
-        char color = 0x0e;
+        char color = background_color;
         auto add_color = [&](char new_color) {
             if (new_color != not_a_color) {
                 color = new_color;

@@ -6,8 +6,9 @@
 #include <functional>
 
 #include "machine.hpp"
-#include "gfx.hpp"
 #include "misc.hpp"
+#include "gfx.hpp"
+#include "pia.hpp"
 
 using std::cout;
 
@@ -132,6 +133,8 @@ namespace {
     void i_cmp();
     void i_cpx();
     void i_cpy();
+
+    void i_isc();
 
     // helper functions
 
@@ -390,12 +393,15 @@ namespace {
         case 0x40: m_imp(); i_rti(); break;
 
         case 0x04: m_zpg(); i_nop(); break;
+        case 0xe7: m_zpg(); i_isc(); break;
 
         default:
             return -1;
         }
 
         step_count++;
+
+        // machine::print_info();
 
         return 0;
     }
@@ -830,9 +836,17 @@ namespace {
         cycle_count += 2 + r_cyc;
     }
 
+    void i_isc() {
+        i_inc();
+        i_sbc();
+        cycle_count = 4 + w_cyc;
+    }
+
     char read_mem(t_addr addr) {
         if (addr < 0x80u) {
             return gfx::get(addr);
+        } else if (addr >= 0x0200 && addr < 0x0300) {
+            return pia::get(addr);
         } else {
             switch (addr) {
             case addr_ra: return ra; break;
@@ -848,6 +862,8 @@ namespace {
     void write_mem(t_addr addr, char val) {
         if (addr < 0x80u) {
             gfx::set(addr, val);
+        } else if (addr >= 0x0200 && addr < 0x0300) {
+            pia::set(addr, val);
         } else {
             switch (addr) {
             case addr_ra: ra = val; break;
