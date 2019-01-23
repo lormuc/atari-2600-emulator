@@ -8,9 +8,13 @@
 #include "sdl.hpp"
 
 const auto frames_per_second = 60;
+const auto monochrome = false;
 
 const auto out_scr_width = 640u;
 const auto out_scr_height = 384u;
+
+// const auto out_scr_width = 320u;
+// const auto out_scr_height = 192u;
 
 const auto in_scr_width = 160u;
 const auto in_scr_height = 192u;
@@ -195,7 +199,12 @@ void sdl::render() {
     SDL_RenderClear(renderer);
     for (unsigned idx = 0; idx < screen.size(); idx++) {
         auto rgb = &palette[screen[idx] >> 1][0];
-        SDL_SetRenderDrawColor(renderer, rgb[0], rgb[1], rgb[2], 0xff);
+        if (monochrome) {
+            auto lum = (rgb[0] + rgb[1] + rgb[2]) / 3;
+            SDL_SetRenderDrawColor(renderer, lum, lum, lum, 0xff);
+        } else {
+            SDL_SetRenderDrawColor(renderer, rgb[0], rgb[1], rgb[2], 0xff);
+        }
         auto i = idx % in_scr_width;
         auto j = idx / in_scr_width;
         auto rx = int(out_scr_width * i / in_scr_width);

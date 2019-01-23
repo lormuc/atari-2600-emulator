@@ -51,7 +51,7 @@ public:
         width = 0;
         width_cnt = 0;
         pos_cnt = 0;
-        enabled = false;
+        enabled = true;
         offset = 0;
         color = 0;
     }
@@ -103,8 +103,10 @@ public:
         }
 
         char ret = not_a_color;
-        if (enabled && width_cnt != 0) {
-            ret = get_color();
+        if (width_cnt != 0) {
+            if (enabled) {
+                ret = get_color();
+            }
             width_cnt--;
         }
 
@@ -215,9 +217,8 @@ namespace {
     bool cxp0p1;
     bool cxm0m1;
 
-    void set_vsync(char val) {
-        auto b = get_bit(val, 1);
-        if (vsyncing == false && b == 1) {
+    void set_vsync(bool on) {
+        if (vsyncing == false && on) {
             static bool initial = true;
             if (initial) {
                 sdl::begin_drawing();
@@ -234,7 +235,7 @@ namespace {
             // ball.reset();
             // plf.reset();
             vsyncing = true;
-        } else if (vsyncing == true && b == 0) {
+        } else if (vsyncing && on == false) {
             vsyncing = false;
         }
     }
@@ -259,13 +260,10 @@ namespace {
 }
 
 void gfx::set(char addr, char val) {
+    const unsigned width_table[] = { 1, 2, 4, 8 };
+
     auto set_number_size = [&](unsigned idx, char val) {
-        switch (val >> 4) {
-        case 0: msl[idx].set_width(1); break;
-        case 1: msl[idx].set_width(2); break;
-        case 2: msl[idx].set_width(4); break;
-        case 3: msl[idx].set_width(8); break;
-        }
+        msl[idx].set_width(width_table[val >> 4]);
 
         auto ns = val & 0x07u;
         std::vector<unsigned> decoders;
@@ -298,7 +296,7 @@ void gfx::set(char addr, char val) {
     switch (addr) {
 
     case 0x00:
-        set_vsync(val);
+        set_vsync(get_bit(val, 1));
         break;
 
     case 0x01:
@@ -339,15 +337,15 @@ void gfx::set(char addr, char val) {
 
     case 0x0a:
         plf.set_reflected(get_bit(val, 0));
-        ball.set_width(val >> 4);
+        ball.set_width(width_table[val >> 4]);
         break;
 
     case 0x0b:
-        plr[0].set_reflected(val);
+        plr[0].set_reflected(get_bit(val, 3));
         break;
 
     case 0x0c:
-        plr[1].set_reflected(val);
+        plr[1].set_reflected(get_bit(val, 3));
         break;
 
     case 0x0d:
@@ -391,15 +389,15 @@ void gfx::set(char addr, char val) {
         break;
 
     case 0x1d:
-        msl[0].set_enabled(val);
+        msl[0].set_enabled(get_bit(val, 1));
         break;
 
     case 0x1e:
-        msl[1].set_enabled(val);
+        msl[1].set_enabled(get_bit(val, 1));
         break;
 
     case 0x1f:
-        ball.set_enabled(val);
+        ball.set_enabled(get_bit(val, 1));
         break;
 
     case 0x20:
@@ -512,19 +510,23 @@ char gfx::get(char addr) {
 }
 
 void gfx::cycle() {
+    if (hor_cnt == 0) {
+        std::cout << "scanline " << ver_cnt << "\n";
+    }
+
     if (hor_cnt >= 68) {
-        char color = background_color;
+        char color = 0x0e;
         auto add_color = [&](char new_color) {
             if (new_color != not_a_color) {
                 color = new_color;
             }
         };
         add_color(plf.color_cycle());
-        // add_color(ball.color_cycle());
-        // add_color(plr[1].color_cycle());
-        // add_color(msl[1].color_cycle());
+        add_color(ball.color_cycle());
+        add_color(plr[1].color_cycle());
+        add_color(msl[1].color_cycle());
         add_color(plr[0].color_cycle());
-        // add_color(msl[0].color_cycle());
+        add_color(msl[0].color_cycle());
 
         if (ver_cnt >= 40) {
             sdl::send_pixel(color);
@@ -548,13 +550,9 @@ bool gfx::init() {
 
     plf.init();
     plf.set_width(160);
-    plf.set_enabled(true);
-
     plr[0].init();
-    plr[0].set_enabled(true);
     plr[0].set_width(8);
     plr[1].init();
-    plr[1].set_enabled(true);
     plr[1].set_width(8);
     msl[0].init();
     msl[0].set_width(1);
