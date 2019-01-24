@@ -1,4 +1,6 @@
+#include "misc.hpp"
 #include "pia.hpp"
+#include "sdl.hpp"
 
 class t_timer {
     unsigned interval;
@@ -59,10 +61,27 @@ void pia::set(t_addr addr, char val) {
 }
 
 char pia::get(t_addr addr) {
-    if (addr == 0x284) {
-        return timer.read();
+    char res;
+    switch (addr) {
+
+    case 0x280:
+        res = 0xff;
+        set_bit(res, 7, not sdl::get_key(sdl::key_right));
+        set_bit(res, 6, not sdl::get_key(sdl::key_left));
+        set_bit(res, 5, not sdl::get_key(sdl::key_down));
+        set_bit(res, 4, not sdl::get_key(sdl::key_up));
+        break;
+
+    case 0x284:
+        res = timer.read();
+        break;
+
+    default:
+        res = 0x00;
+        break;
+
     }
-    return 0x00;
+    return res;
 }
 
 void pia::cycle() {

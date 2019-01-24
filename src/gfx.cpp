@@ -51,7 +51,7 @@ public:
         width = 0;
         width_cnt = 0;
         pos_cnt = 0;
-        enabled = true;
+        enabled = false;
         offset = 0;
         color = 0;
     }
@@ -549,10 +549,13 @@ bool gfx::init() {
     vsyncing = false;
 
     plf.init();
+    plf.set_enabled(true);
     plf.set_width(160);
     plr[0].init();
+    plr[0].set_enabled(true);
     plr[0].set_width(8);
     plr[1].init();
+    plr[1].set_enabled(true);
     plr[1].set_width(8);
     msl[0].init();
     msl[0].set_width(1);

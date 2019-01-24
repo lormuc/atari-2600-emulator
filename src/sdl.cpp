@@ -7,7 +7,7 @@
 #include "misc.hpp"
 #include "sdl.hpp"
 
-const auto frames_per_second = 1;
+const auto frames_per_second = 60;
 const auto monochrome = false;
 
 const auto out_scr_width = 640u;
@@ -18,6 +18,13 @@ const auto out_scr_height = 384u;
 
 const auto in_scr_width = 160u;
 const auto in_scr_height = 192u;
+
+const int sdl::key_right = SDL_SCANCODE_KP_6;
+const int sdl::key_left = SDL_SCANCODE_KP_4;
+const int sdl::key_down = SDL_SCANCODE_KP_5;
+const int sdl::key_up = SDL_SCANCODE_KP_8;
+
+std::array<bool, 1024> keyboard_state;
 
 const char palette[0x80][3] = {
     // 0
@@ -261,12 +268,14 @@ bool sdl::init() {
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
 
-    std::fill(screen.begin(), screen.end(), 0);
+    std::fill(screen.begin(), screen.end(), 0x00);
     scr_cnt = 0;
     frame_cnt = 0;
     frame_done = false;
     running = true;
     drawing = false;
+
+    std::fill(keyboard_state.begin(), keyboard_state.end(), false);
 
     return true;
 }
@@ -278,9 +287,11 @@ void sdl::poll() {
             running = false;
         }
         if (event.type == SDL_KEYDOWN) {
-            if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+            auto sc = event.key.keysym.scancode;
+            if (sc == SDL_SCANCODE_ESCAPE) {
                 running = false;
             }
+            keyboard_state[sc] = true;
         }
     }
 }
@@ -313,4 +324,13 @@ void sdl::close() {
     SDL_DestroyWindow(window);
     window = nullptr;
     SDL_Quit();
+}
+
+bool sdl::get_key(int sc) {
+    auto res = keyboard_state[sc];
+
+    auto ks = SDL_GetKeyboardState(nullptr);
+    keyboard_state[sc] = ks[sc];
+
+    return res;
 }

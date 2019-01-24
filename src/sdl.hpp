@@ -9,4 +9,10 @@ namespace sdl {
     void begin_drawing();
     void send_pixel(char);
     void close();
+
+    bool get_key(int);
+    extern const int key_right;
+    extern const int key_left;
+    extern const int key_down;
+    extern const int key_up;
 }
