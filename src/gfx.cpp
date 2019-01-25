@@ -23,8 +23,6 @@ namespace {
     bool wsync_next_line;
 
     char background_color;
-    char vdelp[2];
-    char vdelbl;
     char resmp[2];
 }
 
@@ -34,16 +32,33 @@ protected:
     unsigned width;
     unsigned width_cnt;
     unsigned pos_cnt;
-    bool enabled;
+    char graphics;
+    char delayed_graphics;
+    unsigned delay_cnt;
+    bool delayed;
     char offset;
     char color;
+    bool reflected;
 
     void increment() {
         pos_cnt = (pos_cnt + 1) % line_width;
     }
 
     virtual char get_color() {
-        return color;
+        auto idx = 8 * (width_cnt - 1) / width;
+
+        if (reflected) {
+            idx = 7 - idx;
+        }
+
+        auto val = graphics;
+        if (delayed) {
+            val = delayed_graphics;
+        }
+        if (get_bit(val, int(idx)) == 1) {
+            return color;
+        }
+        return not_a_color;
     }
 
 public:
@@ -52,9 +67,13 @@ public:
         width = 0;
         width_cnt = 0;
         pos_cnt = 0;
-        enabled = false;
         offset = 0;
         color = 0;
+        reflected = false;
+        delay_cnt = 0;
+        delayed = false;
+        delayed_graphics = 0;
+        graphics = 0;
     }
 
     void set_decoders(const std::vector<unsigned>& val) {
@@ -75,8 +94,17 @@ public:
         width = val;
     }
 
+    void set_graphics(char val)  {
+        graphics = val;
+        delay_cnt = line_width;
+    }
+
     void set_enabled(bool val) {
-        enabled = val;
+        if (val == true) {
+            set_graphics(0xff);
+        } else {
+            set_graphics(0x00);
+        }
     }
 
     void set_offset(char val) {
@@ -85,6 +113,14 @@ public:
 
     void set_color(char val) {
         color = val;
+    }
+
+    void set_delayed(bool val) {
+        delayed = val;
+    }
+
+    void set_reflected(bool val) {
+        reflected = val;
     }
 
     void move() {
@@ -100,6 +136,13 @@ public:
     }
 
     char color_cycle() {
+        if (delay_cnt != 0) {
+            delay_cnt--;
+            if (delay_cnt == 0) {
+                delayed_graphics = graphics;
+            }
+        }
+
         auto& v = decoders;
         if (std::find(v.begin(), v.end(), pos_cnt) != v.end()) {
             width_cnt = width;
@@ -107,9 +150,7 @@ public:
 
         char ret = not_a_color;
         if (width_cnt != 0) {
-            if (enabled) {
-                ret = get_color();
-            }
+            ret = get_color();
             width_cnt--;
         }
 
@@ -126,40 +167,10 @@ class t_missile : public t_object {
 };
 
 class t_player : public t_object {
-    bool reflected;
-    char graphics;
-
-    char get_color() {
-        auto idx = 8 * (width_cnt - 1) / width;
-
-        if (reflected) {
-            idx = 7 - idx;
-        }
-
-        if (get_bit(graphics, int(idx)) == 1) {
-            return color;
-        }
-        return not_a_color;
-    }
-public:
-    void init() {
-        t_object::init();
-        reflected = false;
-        graphics = 0;
-    }
-
-    void set_reflected(bool val) {
-        reflected = val;
-    }
-
-    void set_graphics(char val)  {
-        graphics = val;
-    }
 };
 
 class t_playfield : public t_object {
-    bool reflected;
-    char reg[3];
+    std::array<char, 3> reg;
 
     char get_color() {
         auto j = pos_cnt / 4;
@@ -181,14 +192,7 @@ class t_playfield : public t_object {
 public:
     void init() {
         t_object::init();
-        reflected = false;
-        reg[0] = 0;
-        reg[1] = 0;
-        reg[2] = 0;
-    }
-
-    void set_reflected(bool val) {
-        reflected = val;
+        std::fill(reg.begin(), reg.end(), 0);
     }
 
     void set_register(unsigned idx, char val) {
@@ -423,15 +427,15 @@ void gfx::set(char addr, char val) {
         break;
 
     case 0x25:
-        vdelp[0] = val;
+        plr[0].set_delayed(get_bit(val, 0));
         break;
 
     case 0x26:
-        vdelp[1] = val;
+        plr[1].set_delayed(get_bit(val, 0));
         break;
 
     case 0x27:
-        vdelbl = val;
+        ball.set_delayed(get_bit(val, 0));
         break;
 
     case 0x28:
@@ -554,13 +558,10 @@ bool gfx::init() {
     vsyncing = false;
 
     plf.init();
-    plf.set_enabled(true);
     plf.set_width(line_width);
     plr[0].init();
-    plr[0].set_enabled(true);
     plr[0].set_width(8);
     plr[1].init();
-    plr[1].set_enabled(true);
     plr[1].set_width(8);
     msl[0].init();
     msl[0].set_width(1);
@@ -570,9 +571,6 @@ bool gfx::init() {
     ball.set_width(1);
 
     background_color = 0;
-    vdelp[0] = 0;
-    vdelp[1] = 0;
-    vdelbl = 0;
     resmp[0] = 0;
     resmp[1] = 0;
     cxclr();
