@@ -10,7 +10,9 @@
 #include "machine.hpp"
 #include "sdl.hpp"
 
-const char not_a_color = 0xff;
+const auto not_a_color = char(0xff);
+const auto line_width = 160u;
+const auto line_start = 68u;
 
 using std::cout;
 
@@ -18,8 +20,7 @@ namespace {
     unsigned hor_cnt;
     unsigned ver_cnt;
     bool vsyncing;
-
-    unsigned halt_line;
+    bool wsync_next_line;
 
     char background_color;
     char vdelp[2];
@@ -38,7 +39,7 @@ protected:
     char color;
 
     void increment() {
-        pos_cnt = (pos_cnt + 1) % 160;
+        pos_cnt = (pos_cnt + 1) % line_width;
     }
 
     virtual char get_color() {
@@ -61,11 +62,13 @@ public:
     }
 
     void reset() {
-        pos_cnt = 0;
-        pos_cnt = 160 - 8;
-        if (hor_cnt >= 60 && hor_cnt < 68) {
-            pos_cnt = 160 - (hor_cnt + 8 - 68);
+        auto cc = 3 * machine::get_cycle_counter() - 1;
+        pos_cnt = cc;
+        if (hor_cnt + cc >= line_start && hor_cnt < line_start) {
+            pos_cnt += hor_cnt;
+            pos_cnt -= line_start;
         }
+        pos_cnt = line_width - pos_cnt;
     }
 
     void set_width(unsigned val) {
@@ -87,12 +90,12 @@ public:
     void move() {
         offset >>= 4;
         if (offset < 8u) {
-            pos_cnt = (pos_cnt + offset) % 160;
+            pos_cnt = (pos_cnt + offset) % line_width;
         } else {
             offset = ~offset;
             offset = offset & 0x0fu;
             offset++;
-            pos_cnt = (pos_cnt + 160 - offset) % 160;
+            pos_cnt = (pos_cnt + line_width - offset) % line_width;
         }
     }
 
@@ -303,7 +306,6 @@ void gfx::set(char addr, char val) {
         break;
 
     case 0x02:
-        halt_line = ver_cnt;
         machine::halt();
         break;
 
@@ -514,7 +516,7 @@ void gfx::cycle() {
     //     std::cout << "scanline " << ver_cnt << "\n";
     // }
 
-    if (hor_cnt >= 68) {
+    if (hor_cnt >= line_start) {
         char color = background_color;
         auto add_color = [&](char new_color) {
             if (new_color != not_a_color) {
@@ -533,13 +535,16 @@ void gfx::cycle() {
         }
     }
     hor_cnt++;
-    if (hor_cnt == 228) {
+    if (hor_cnt == line_width + line_start) {
         hor_cnt = 0;
+        if (machine::is_halted()) {
+            wsync_next_line = true;
+        }
         ver_cnt++;
     }
-    if (hor_cnt == 6 && ver_cnt == halt_line + 1) {
+    if (hor_cnt == 6 && wsync_next_line) {
         machine::resume();
-        halt_line = -2;
+        wsync_next_line = false;
     }
 }
 
@@ -550,7 +555,7 @@ bool gfx::init() {
 
     plf.init();
     plf.set_enabled(true);
-    plf.set_width(160);
+    plf.set_width(line_width);
     plr[0].init();
     plr[0].set_enabled(true);
     plr[0].set_width(8);
@@ -572,7 +577,7 @@ bool gfx::init() {
     resmp[1] = 0;
     cxclr();
 
-    halt_line = -2;
+    wsync_next_line = false;
 
     auto success = sdl::init();
 

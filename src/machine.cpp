@@ -515,18 +515,18 @@ namespace {
     }
 
     void i_sta() {
-        write_mem(arg, ra);
         cycle_count += 2 + w_cyc;
+        write_mem(arg, ra);
     }
 
     void i_stx() {
-        write_mem(arg, rx);
         cycle_count += 2 + r_cyc;
+        write_mem(arg, rx);
     }
 
     void i_sty() {
-        write_mem(arg, ry);
         cycle_count += 2 + r_cyc;
+        write_mem(arg, ry);
     }
 
     void i_tax() {
@@ -1024,6 +1024,10 @@ unsigned long machine::get_step_counter() {
     return step_count;
 }
 
+unsigned long machine::get_cycle_counter() {
+    return cycle_count;
+}
+
 void machine::cycle() {
     if (cycle_count == 0) {
         if (ready == false) {
@@ -1036,6 +1040,10 @@ void machine::cycle() {
 
 void machine::halt() {
     ready = false;
+}
+
+bool machine::is_halted() {
+    return ready == false;
 }
 
 void machine::resume() {
