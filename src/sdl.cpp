@@ -7,7 +7,6 @@
 #include "misc.hpp"
 #include "sdl.hpp"
 
-const auto frames_per_second = 60;
 const auto monochrome = false;
 
 const auto out_scr_width = 640u;
@@ -23,6 +22,8 @@ const int sdl::key_right = SDL_SCANCODE_KP_6;
 const int sdl::key_left = SDL_SCANCODE_KP_4;
 const int sdl::key_down = SDL_SCANCODE_KP_5;
 const int sdl::key_up = SDL_SCANCODE_KP_8;
+const int sdl::key_left_trigger = SDL_SCANCODE_KP_1;
+const int sdl::key_right_trigger = SDL_SCANCODE_KP_3;
 
 std::array<bool, 1024> keyboard_state;
 
@@ -199,6 +200,7 @@ namespace {
     bool drawing;
     bool running;
     bool frame_done;
+    unsigned frames_per_second;
 }
 
 void sdl::render() {
@@ -274,6 +276,7 @@ bool sdl::init() {
     frame_done = false;
     running = true;
     drawing = false;
+    frames_per_second = 60;
 
     std::fill(keyboard_state.begin(), keyboard_state.end(), false);
 
@@ -333,4 +336,8 @@ bool sdl::get_key(int sc) {
     keyboard_state[sc] = ks[sc];
 
     return res;
+}
+
+void sdl::set_frames_per_second(unsigned val) {
+    frames_per_second = val;
 }

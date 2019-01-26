@@ -371,6 +371,7 @@ void gfx::set(char addr, char val) {
 
     case 0x08:
         plf.set_color(val);
+        ball.set_color(val);
         break;
 
     case 0x09:
@@ -548,63 +549,15 @@ char gfx::get(char addr) {
         res = cx(cxp0p1, cxm0m1);
         break;
 
+    case 0x0c:
+        res = sdl::get_key(sdl::key_left_trigger);
+        res ^= 1;
+        res <<= 7;
+        break;
+
     }
 
     return res;
-}
-
-void gfx::cycle() {
-    // if (hor_cnt == 0) {
-    //     std::cout << "scanline " << ver_cnt << "\n";
-    // }
-
-    if (hor_cnt >= line_start) {
-        char color = background_color;
-        auto add_color = [&](char new_color) {
-            if (new_color != not_a_color) {
-                color = new_color;
-            }
-        };
-
-        auto pf = plf.color_cycle();
-        auto bl = ball.color_cycle();
-        auto p0 = plr[0].color_cycle();
-        auto p1 = plr[1].color_cycle();
-        auto m0 = msl[0].color_cycle();
-        auto m1 = msl[1].color_cycle();
-
-        if (playfield_priority) {
-            add_color(p1);
-            add_color(m1);
-            add_color(p0);
-            add_color(m0);
-            add_color(pf);
-            add_color(bl);
-        } else {
-            add_color(pf);
-            add_color(bl);
-            add_color(p1);
-            add_color(m1);
-            add_color(p0);
-            add_color(m0);
-        }
-
-        if (ver_cnt >= 40) {
-            sdl::send_pixel(color);
-        }
-    }
-    hor_cnt++;
-    if (hor_cnt == line_width + line_start) {
-        hor_cnt = 0;
-        if (machine::is_halted()) {
-            wsync_next_line = true;
-        }
-        ver_cnt++;
-    }
-    if (hor_cnt == 6 && wsync_next_line) {
-        machine::resume();
-        wsync_next_line = false;
-    }
 }
 
 bool gfx::init() {
@@ -654,5 +607,85 @@ bool gfx::is_waiting() {
     return sdl::is_waiting();
 }
 
+void gfx::set_frames_per_second(unsigned val) {
+    sdl::set_frames_per_second(val);
+}
+
 void gfx::print_info() {
+}
+
+void gfx::cycle() {
+    // if (hor_cnt == 0) {
+    //     std::cout << "scanline " << ver_cnt << "\n";
+    // }
+
+    if (hor_cnt >= line_start) {
+        char color = background_color;
+        auto add_color = [&](char new_color) {
+            if (new_color != not_a_color) {
+                color = new_color;
+            }
+        };
+
+        auto pf = plf.color_cycle();
+        auto bl = ball.color_cycle();
+        auto p0 = plr[0].color_cycle();
+        auto p1 = plr[1].color_cycle();
+        auto m0 = msl[0].color_cycle();
+        auto m1 = msl[1].color_cycle();
+
+        auto set_cx = [&](bool& cx, char c0, char c1) {
+            if (c0 != not_a_color && c1 != not_a_color) {
+                cx = true;
+            }
+        };
+
+        set_cx(cxm0p1, m0, p1);
+        set_cx(cxm0p0, m0, p0);
+        set_cx(cxm1p0, m1, p0);
+        set_cx(cxm1p1, m1, p1);
+        set_cx(cxp0pf, p0, pf);
+        set_cx(cxp0bl, p0, bl);
+        set_cx(cxp1pf, p1, pf);
+        set_cx(cxp1bl, p1, bl);
+        set_cx(cxm0pf, m0, pf);
+        set_cx(cxm0bl, m0, bl);
+        set_cx(cxm1pf, m1, pf);
+        set_cx(cxm1bl, m1, bl);
+        set_cx(cxblpf, bl, pf);
+        set_cx(cxp0p1, p0, p1);
+        set_cx(cxm0m1, m0, m1);
+
+        if (playfield_priority) {
+            add_color(p1);
+            add_color(m1);
+            add_color(p0);
+            add_color(m0);
+            add_color(pf);
+            add_color(bl);
+        } else {
+            add_color(pf);
+            add_color(bl);
+            add_color(p1);
+            add_color(m1);
+            add_color(p0);
+            add_color(m0);
+        }
+
+        if (ver_cnt >= 40) {
+            sdl::send_pixel(color);
+        }
+    }
+    hor_cnt++;
+    if (hor_cnt == line_width + line_start) {
+        hor_cnt = 0;
+        if (machine::is_halted()) {
+            wsync_next_line = true;
+        }
+        ver_cnt++;
+    }
+    if (hor_cnt == 6 && wsync_next_line) {
+        machine::resume();
+        wsync_next_line = false;
+    }
 }

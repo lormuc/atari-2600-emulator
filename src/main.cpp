@@ -1,5 +1,6 @@
 #include <iostream>
 #include <chrono>
+#include <string>
 #include <cstdio>
 
 #include "gfx.hpp"
@@ -7,9 +8,13 @@
 #include "machine.hpp"
 
 int main(int argc, char** argv) {
-    if (argc != 2) {
+    if (argc < 2 || argc >= 4) {
         std::cout << "invalid arguments\n";
         return 1;
+    }
+    unsigned long fps = 60;
+    if (argc == 3) {
+        fps = std::stoul(argv[2]);
     }
 
     machine::init();
@@ -22,6 +27,7 @@ int main(int argc, char** argv) {
 
     pia::init();
     gfx::init();
+    gfx::set_frames_per_second(fps);
     while (gfx::is_running()) {
         gfx::poll();
 

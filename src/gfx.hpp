@@ -9,5 +9,6 @@ namespace gfx {
     void poll();
     void cycle();
     void print_info();
+    void set_frames_per_second(unsigned);
     void close();
 }
