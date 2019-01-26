@@ -171,6 +171,10 @@ class t_player : public t_object {
 
 class t_playfield : public t_object {
     std::array<char, 3> reg;
+    bool score_mode;
+    char score_mode_left_color;
+    char score_mode_right_color;
+    bool priority;
 
     char get_color() {
         auto j = pos_cnt / 4;
@@ -183,16 +187,29 @@ class t_playfield : public t_object {
         bool pf0 = j < 4u && get_bit(reg[0], 4 + j) == 1;
         bool pf1 = j >= 4 && j < 12 && get_bit(reg[1], (7 - (j - 4))) == 1;
         bool pf2 = j >= 12 && get_bit(reg[2], j - 12) == 1;
+        char res = not_a_color;
         if (pf0 || pf1 || pf2) {
-            return color;
+            if (score_mode) {
+                if (pos_cnt < line_width / 2) {
+                    res = score_mode_left_color;
+                } else {
+                    res = score_mode_right_color;
+                }
+            } else {
+                res = color;
+            }
         }
-        return not_a_color;
+        return res;
     }
 
 public:
     void init() {
         t_object::init();
         std::fill(reg.begin(), reg.end(), 0);
+        score_mode = false;
+        score_mode_left_color = 0;
+        score_mode_right_color = 0;
+        priority = false;
     }
 
     void set_register(unsigned idx, char val) {
@@ -200,12 +217,29 @@ public:
             reg[idx] = val;
         }
     }
+
+    void set_score_mode(bool val) {
+        score_mode = val;
+    }
+
+    void set_score_mode_left_color(char val) {
+        score_mode_left_color = val;
+    }
+
+    void set_score_mode_right_color(char val) {
+        score_mode_right_color = val;
+    }
+
+    void set_priority(bool val) {
+        priority = val;
+    }
 };
 
 namespace {
     t_player plr[2];
     t_missile msl[2];
     t_playfield plf;
+    bool playfield_priority;
     t_ball ball;
 
     bool cxm0p1;
@@ -327,10 +361,12 @@ void gfx::set(char addr, char val) {
 
     case 0x06:
         plr[0].set_color(val);
+        plf.set_score_mode_left_color(val);
         break;
 
     case 0x07:
         plr[1].set_color(val);
+        plf.set_score_mode_right_color(val);
         break;
 
     case 0x08:
@@ -343,6 +379,8 @@ void gfx::set(char addr, char val) {
 
     case 0x0a:
         plf.set_reflected(get_bit(val, 0));
+        plf.set_score_mode(get_bit(val, 1));
+        playfield_priority = get_bit(val, 2);
         ball.set_width(width_table[val >> 4]);
         break;
 
@@ -527,12 +565,29 @@ void gfx::cycle() {
                 color = new_color;
             }
         };
-        add_color(plf.color_cycle());
-        add_color(ball.color_cycle());
-        add_color(plr[1].color_cycle());
-        add_color(msl[1].color_cycle());
-        add_color(plr[0].color_cycle());
-        add_color(msl[0].color_cycle());
+
+        auto pf = plf.color_cycle();
+        auto bl = ball.color_cycle();
+        auto p0 = plr[0].color_cycle();
+        auto p1 = plr[1].color_cycle();
+        auto m0 = msl[0].color_cycle();
+        auto m1 = msl[1].color_cycle();
+
+        if (playfield_priority) {
+            add_color(p1);
+            add_color(m1);
+            add_color(p0);
+            add_color(m0);
+            add_color(pf);
+            add_color(bl);
+        } else {
+            add_color(pf);
+            add_color(bl);
+            add_color(p1);
+            add_color(m1);
+            add_color(p0);
+            add_color(m0);
+        }
 
         if (ver_cnt >= 40) {
             sdl::send_pixel(color);
@@ -559,6 +614,7 @@ bool gfx::init() {
 
     plf.init();
     plf.set_width(line_width);
+    playfield_priority = false;
     plr[0].init();
     plr[0].set_width(8);
     plr[1].init();
