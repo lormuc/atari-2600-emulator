@@ -861,7 +861,7 @@ namespace {
 
     void write_mem(t_addr addr, char val) {
         if (addr < 0x80u) {
-            gfx::set(addr, val);
+            gfx::set_with_delay(addr, val);
         } else if (addr >= 0x0200 && addr < 0x0300) {
             pia::set(addr, val);
         } else {

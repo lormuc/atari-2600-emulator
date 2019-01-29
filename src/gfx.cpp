@@ -21,6 +21,10 @@ namespace {
     unsigned ver_cnt;
     bool vsyncing;
     bool wsync_next_line;
+    char set_addr;
+    char set_val;
+    unsigned long set_delay;
+    bool set_delay_active;
 
     char background_color;
     char resmp[2];
@@ -81,13 +85,7 @@ public:
     }
 
     void reset() {
-        auto cc = 3 * machine::get_cycle_counter() - 1;
-        pos_cnt = cc;
-        if (hor_cnt + cc >= line_start && hor_cnt < line_start) {
-            pos_cnt += hor_cnt;
-            pos_cnt -= line_start;
-        }
-        pos_cnt = line_width - pos_cnt;
+        pos_cnt = 0;
     }
 
     void set_width(unsigned val) {
@@ -298,6 +296,13 @@ namespace {
         cxp0p1 = 0;
         cxm0m1 = 0;
     }
+}
+
+void gfx::set_with_delay(char addr, char val) {
+    set_addr = addr;
+    set_val = val;
+    set_delay = 3 * machine::get_cycle_counter() - 2;
+    set_delay_active = true;
 }
 
 void gfx::set(char addr, char val) {
@@ -585,6 +590,7 @@ bool gfx::init() {
     cxclr();
 
     wsync_next_line = false;
+    set_delay_active = false;
 
     auto success = sdl::init();
 
@@ -687,5 +693,13 @@ void gfx::cycle() {
     if (hor_cnt == 6 && wsync_next_line) {
         machine::resume();
         wsync_next_line = false;
+    }
+    if (set_delay_active) {
+        if (set_delay == 0) {
+            set(set_addr, set_val);
+            set_delay_active = false;
+        } else {
+            set_delay--;
+        }
     }
 }

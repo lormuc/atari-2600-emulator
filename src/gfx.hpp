@@ -5,6 +5,7 @@ namespace gfx {
     bool is_running();
     bool is_waiting();
     void set(char, char);
+    void set_with_delay(char, char);
     char get(char);
     void poll();
     void cycle();
